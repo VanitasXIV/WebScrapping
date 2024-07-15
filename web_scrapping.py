@@ -2,6 +2,67 @@ import urllib.request, urllib.parse, urllib.error
 from bs4 import BeautifulSoup
 import re
 import os
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+
+class WebScrapperApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Web Scrapper")
+        self.geometry("500x300")
+        self.create_widgets()
+    
+    def create_widgets(self):
+        # URL Input
+        self.url_label = ttk.Label(self, text="Enter URL:")
+        self.url_label.pack(pady=5)
+        self.url_entry = ttk.Entry(self, width=50)
+        self.url_entry.pack(pady=5)
+
+        # Option Buttons
+        self.option_label = ttk.Label(self, text="Choose what to extract:")
+        self.option_label.pack(pady=5)
+
+        self.option_var = tk.StringVar()
+        self.option_menu = ttk.Combobox(self, textvariable=self.option_var)
+        self.option_menu['values'] = ('Links', 'Headers', 'Paragraphs', 'Images')
+        self.option_menu.pack(pady=5)
+
+        # Scrape Button
+        self.scrape_button = ttk.Button(self, text="Scrape", command=self.scrape)
+        self.scrape_button.pack(pady=20)
+
+    def scrape(self):
+        url = self.url_entry.get()
+        option = self.option_var.get()
+
+        if not validate_url(url):
+            messagebox.showerror("Invalid URL", "Please enter a valid URL.")
+            return
+
+        html = fetch_url(url)
+        if not html:
+            messagebox.showerror("Error", "Failed to fetch URL.")
+            return
+
+        soup = BeautifulSoup(html, 'html.parser')
+
+        if option == 'Links':
+            data = extract_links(soup)
+        elif option == 'Headers':
+            data = extract_headers(soup)
+        elif option == 'Paragraphs':
+            data = extract_paragraphs(soup)
+        elif option == 'Images':
+            data = extract_images(soup)
+        else:
+            messagebox.showerror("Invalid Option", "Please select a valid option.")
+            return
+
+        save_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+        if save_path:
+            save_to_file(save_path, data)
+            messagebox.showinfo("Success", f"Data saved to {save_path}")    
 
 def validate_url(url):
     regex = re.compile(
@@ -61,56 +122,6 @@ def save_to_file(filename, data):
             file.write(f"{item}\n")
     print(f"Data saved to {filename}")
 
-def main():
-    url = input('Enter URL: ')
-    if not validate_url(url):
-        print("Invalid URL. Please enter a valid URL.")
-        return
-
-    html = fetch_url(url)
-    if not html:
-        return
-
-    soup = BeautifulSoup(html, 'html.parser')
-
-    while True:
-        print("\nChoose what to extract:")
-        print("1. Links")
-        print("2. Headers")
-        print("3. Paragraphs")
-        print("4. Images")
-        print("5. Exit")
-        choice = input("Enter your choice: ")
-
-        if choice == '1':
-            links = extract_links(soup)
-            print("\nLinks:")
-            for link in links:
-                print(link)
-            save_to_file('links.txt', links)
-        elif choice == '2':
-            headers = extract_headers(soup)
-            print("\nHeaders:")
-            for header in headers:
-                print(header)
-            save_to_file('headers.txt', headers)
-        elif choice == '3':
-            paragraphs = extract_paragraphs(soup)
-            print("\nParagraphs:")
-            for paragraph in paragraphs:
-                print(paragraph)
-            save_to_file('paragraphs.txt', paragraphs)
-        elif choice == '4':
-            images = extract_images(soup)
-            print("\nImages:")
-            for image in images:
-                print(image)
-            save_to_file('images.txt', images)
-        elif choice == '5':
-            print("Exiting...")
-            break
-        else:
-            print("Invalid choice. Please try again.")
-
 if __name__ == "__main__":
-    main()
+    app = WebScrapperApp()
+    app.mainloop()
